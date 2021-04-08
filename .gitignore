@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#ignore cassandra
+apache-cassandra-3.11.10
