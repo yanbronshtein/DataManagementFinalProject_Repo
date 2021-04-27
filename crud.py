@@ -2,14 +2,8 @@ import pymongo
 import mysql.connector
 import sys
 from dotenv import dotenv_values
+import pandas as pd
 
-properties = {
-            'user': config['USER_SQL'],
-            'password': config['PASSWORD_SQL'],
-            'host': 'localhost',
-            'database': 'tweets_db_sql',
-            'raise_on_warnings': True,
-}
 
 class CRUD:
 
@@ -25,6 +19,13 @@ class CRUD:
         self.tweets_db_mongo = tweets_db_mongo
         ##MySQL
 
+        properties = {
+            'user': config['USER_SQL'],
+            'password': config['PASSWORD_SQL'],
+            'host': 'localhost',
+            'database': 'tweets_db_sql',
+            'raise_on_warnings': True,
+        }
         conn = mysql.connector.connect(**properties)
         conn.autocommit = True
         self.cursor = conn.cursor(buffered=True)
@@ -33,7 +34,13 @@ class CRUD:
         pass
 
     def get_mongo(self, query):
-        return tweets_db_mongo.tweets_col.find(query)
+        # return self.tweets_db_mongo.tweets_col.find(query)
+        # print(self.tweets_db_mongo.tweets_col.find_one())
+        temp = self.tweets_db_mongo.tweets_col.find({}).limit(10)
+        return temp
+
+        # return pd.DataFrame(self.tweets_db_mongo.tweets_col.find_one()).to_string()
+
 
 
 
