@@ -31,7 +31,6 @@ class CRUD:
         self.mysql_cursor = self.mysql_conn.cursor(dictionary=True)
 
     def get_mysql(self, query):
-        print(query)
         self.mysql_cursor.execute(query)
         result = self.mysql_cursor.fetchall()
 
@@ -45,15 +44,14 @@ class CRUD:
         # sys.exit(0)
 
     def get_mongo(self, query):
-        # return self.tweets_db_mongo.tweets_col.find(query)
+        return self.tweets_db_mongo.tweets_col.find(query)
         # print(self.tweets_db_mongo.tweets_col.find_one())
         # temp = self.tweets_db_mongo.tweets_col.find(query)
 
-        new_temp = self.tweets_db_mongo.tweets_col.find(
-            { 'hashtags': {'$elemMatch':{ '$eq':'sundayvibes'} } }
-        )
+        # new_temp = self.tweets_db_mongo.tweets_col.find(
+        #     { 'hashtags': {'$elemMatch':{ '$eq':'sundayvibes'} } }
+        # )
 
-        return new_temp
 
         # return pd.DataFrame(self.tweets_db_mongo.tweets_col.find_one()).to_string()
 

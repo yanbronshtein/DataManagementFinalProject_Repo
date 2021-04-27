@@ -44,6 +44,7 @@ def merge_dicts(dict1, dict2):
     new_dict = {**dict1, **dict2}
     return new_dict
 def go():
+
     print("User search choice", search_choice.get())
     choice = search_choice.get()
     user_text = entry.get().strip()
@@ -53,6 +54,7 @@ def go():
     mongo_query = sql_query = sql_res = mongo_res = None
     #by hashtag
     #Find user and tweet_id. Find all matches in SQL
+    global display_list
     display_list = []  # list of dictionaries
 
     if choice == 1:
@@ -70,22 +72,40 @@ def go():
             for record in sql_res:
                 display_list.append(merge_dicts(doc_dict, record))
 
-
-
-
     #by word
     elif choice == 2:
         print("choice was to search by word")
 
         mongo_query = {'tweet_text': {'$regex': user_text.lower()}}
-        # sql_res = crud.get_mysql("yody")
+        mongo_res = crud.get_mongo(mongo_query)
+        for doc in mongo_res:
+            doc_dict = dict(doc)  # Get the dictionary version of this
+            sql_query = """
+                    SELECT * FROM user WHERE tweet_id = '{}' and user_id = '{}';
+                    """.format(doc_dict['tweet_id'], doc_dict['user_id'])
+            sql_res = crud.get_mysql(sql_query)
+            # the composite key of user_id and tweet_id is unique in SQL so merge_dicts() will work
+            for record in sql_res:
+                display_list.append(merge_dicts(doc_dict, record))
+
     #by user
     elif choice == 3:
         print("choice was to search by user")
         sql_query = """
         SELECT * FROM user WHERE screen_name='{}';
         """.format(user_text)
-        mongo_query = {'tweet_text': {'$regex': user_text.lower()}}
+        sql_res = crud.get_mysql(sql_query)
+        if len(sql_res) == 0:
+            # print(f"The screen_name {} does not exist".format(user_text))
+            print("The screen_name", user_text, "does not exist")
+
+        for record in sql_res:
+            mongo_query = {'tweet_id': record['tweet_id'], 'user_id': record['user_id']}
+            mongo_res = crud.get_mongo(mongo_query)
+            for doc in mongo_res:
+                display_list.append(merge_dicts(dict(doc), record))
+
+
     #by time range
     else:
         print("YO we in da outskirts")
@@ -100,6 +120,7 @@ def go():
 
     sb = Scrollbar(root)
     sb.pack(side=RIGHT, fill=Y)
+    global mylist
     mylist = Listbox(root, yscrollcommand=sb.set, width=300)
     # # print(res)
     
@@ -109,31 +130,35 @@ def go():
 
     mylist.pack(side=LEFT)
     sb.config(command=mylist.yview)
-
+    # root.update_idletasks()
     #
 
 
 
 
-def scrollbar(root):
-    sb = Scrollbar(root)
-    sb.pack(side=RIGHT, fill=Y)
-    crud = CRUD()
-    mongo_query = {'hashtags': {'$elemMatch': {'$eq': 'sundayvibes'}}}
-    # res = list(crud.get_mongo(query=mongo_query))
-    res = crud.get_mongo(mongo_query)
-    mylist = Listbox(root, yscrollcommand=sb.set, width=300)
-    # print(res)
-    for doc in res:
-        mylist.insert(END, str(dict(doc)))
-
-    mylist.pack(side=LEFT)
-    sb.config(command=mylist.yview)
+# def scrollbar(root):
+#     sb = Scrollbar(root)
+#     sb.pack(side=RIGHT, fill=Y)
+#     crud = CRUD()
+#     mongo_query = {'hashtags': {'$elemMatch': {'$eq': 'sundayvibes'}}}
+#     # res = list(crud.get_mongo(query=mongo_query))
+#     res = crud.get_mongo(mongo_query)
+#
+#     mylist = Listbox(root, yscrollcommand=sb.set, width=300)
+#     # print(res)
+#     for doc in res:
+#         mylist.insert(END, str(dict(doc)))
+#
+#     mylist.pack(side=LEFT)
+#     sb.config(command=mylist.yview)
 
 
 def quit(root):
     quit_button = Button(root, text="Quit", command=root.destroy)
     quit_button.pack()
+def clear():
+    print("Whats my search choice", search_choice.get())
+    mylist.delete(0, END)
 
 
 root = Tk()
@@ -154,9 +179,19 @@ for i in range(len(query_option_list)):
 go_button = Button(root, text="Go", command=go)
 go_button.pack()
 
+
 entry = Entry(root)
 entry.pack()
+clear_output_button = Button(root, text="Clear output", command=clear)
+clear_output_button.pack()
 quit(root)
 
+# # print(res)
+
+
+
+
+# mylist.pack(side=LEFT)
+# sb.config(command=mylist.yview)
 
 root.mainloop()
