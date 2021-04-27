@@ -28,18 +28,21 @@ class CRUD:
         }
         self.mysql_conn = mysql.connector.connect(**properties)
         self.mysql_conn.autocommit = True
-        self.mysql_cursor = self.mysql_conn.cursor(buffered=True)
+        self.mysql_cursor = self.mysql_conn.cursor(dictionary=True)
 
     def get_mysql(self, query):
         print(query)
         self.mysql_cursor.execute(query)
         result = self.mysql_cursor.fetchall()
-        for record in result:
-            print(record)
 
-        self.mysql_cursor.close()
-        self.mysql_conn.close()
-        sys.exit(0)
+        return result
+        # for record in result:
+        #     print(record)
+
+        # self.mysql_cursor.close()
+        # self.mysql_conn.close()
+
+        # sys.exit(0)
 
     def get_mongo(self, query):
         # return self.tweets_db_mongo.tweets_col.find(query)

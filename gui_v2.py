@@ -10,45 +10,8 @@ from crud import CRUD
 ##VIP global variables
 
 
-# config = dotenv_values('.env')  # config = {"USER": "foo", "EMAIL": "foo@example.org"}
-# user = config['USER_MONGO']
-# password = config['PASSWORD_MONGO']
-# conn_string = f"mongodb+srv://{user}:{password}@cluster0.6iqrn.mongodb.net"
-# client = pymongo.MongoClient(conn_string)
-# tweets_db_mongo = client['tweets_db_mongo']
-# tweets_col = tweets_db_mongo['tweets_col']
-
 query_option_list = ['Search by Hashtag', 'Search by Word', 'Search by User Screen Name', 'Search by Time Range']
 button_list = []
-
-result = []
-
-
-# def find_hashtag(tweets_db_mongo, hashtag):
-#     result.append(tweets_db_mongo.tweets_col.find({}))
-
-
-def query():
-
-    # query = 'You have entered: ' + entry.get() + ' and we shall do thingies with ' + query_option_list[
-    #     search_choice.get() - 1]
-    # user_query_label.config(text=query, bg='magenta')
-    # print(entry.get())
-    crud = CRUD()
-    # mongo_query = {'hashtags': {'$elemMatch': {'$eq': entry.get()}}}
-    mongo_query = {'hashtags': {'$elemMatch': {'$eq': 'sundayvibes'}}}
-
-    res = crud.get_mongo(query=mongo_query)
-
-    # text = tkinter.scrolledtext.ScrolledText(root)
-    # text.pack()
-    # mongo_res = str(list(tweets_db_mongo.tweets_col.find(mongo_query)))
-    # user_query_label.config(text=mongo_res, bg='red')
-    # return res
-    # if search_choice.get() == 1:
-    #     #         find_hashtag(tweets_db_mongo, entry.get())
-    #     pass
-
 
 def welcome(root):
     welcome_str = """
@@ -76,25 +39,10 @@ def separator(root):
     separator.pack(fill='x')
 
 
-def field_dropdown(root):
-    # Dropdown menu options
-    dropdown_options = ['tweet_id', 'user_id', 'is_retweet', 'tweet_text', 'in_reply_to_status_id',
-                        'in_reply_to_user_id', 'in_reply_to_screen_name', 'coordinates', 'place', 'quote_count',
-                        'reply_count', 'retweet_count', 'favorite_count', 'hashtags', 'lang', 'timestamp_ms',
-                        'user_name', 'screen_name', 'followers_count', 'listed_count', 'favourites_count',
-                        'status_count'
-                        ]
 
-    # datatype of menu text
-
-    # initial menu text
-    clicked.set('Choose field to display')
-
-    # Create Dropdown menu
-    drop = OptionMenu(root, clicked, *dropdown_options)
-    drop.pack()
-
-
+def merge_dicts(dict1, dict2):
+    new_dict = {**dict1, **dict2}
+    return new_dict
 def go():
     print("User search choice", search_choice.get())
     choice = search_choice.get()
@@ -102,28 +50,67 @@ def go():
     print("User text was", user_text)
     crud = CRUD()
 
-    res = None
-    mongo_query = None
+    mongo_query = sql_query = sql_res = mongo_res = None
+    #by hashtag
+    #Find user and tweet_id. Find all matches in SQL
+    display_list = []  # list of dictionaries
+
     if choice == 1:
+
         print("choice was to search by hashtag")
         mongo_query = {'hashtags': {'$elemMatch': {'$eq': user_text}}}
+        mongo_res = crud.get_mongo(mongo_query)
+        for doc in mongo_res:
+            doc_dict = dict(doc) #Get the dictionary version of this
+            sql_query = """
+            SELECT * FROM user WHERE tweet_id = '{}' and user_id = '{}';
+            """.format(doc_dict['tweet_id'], doc_dict['user_id'])
+            sql_res = crud.get_mysql(sql_query)
+            #the composite key of user_id and tweet_id is unique in SQL so merge_dicts() will work
+            for record in sql_res:
+                display_list.append(merge_dicts(doc_dict, record))
+
+
+
+
+    #by word
     elif choice == 2:
         print("choice was to search by word")
 
         mongo_query = {'tweet_text': {'$regex': user_text.lower()}}
+        # sql_res = crud.get_mysql("yody")
+    #by user
     elif choice == 3:
         print("choice was to search by user")
         sql_query = """
         SELECT * FROM user WHERE screen_name='{}';
         """.format(user_text)
-
-        crud.get_mysql(sql_query)
-
+        mongo_query = {'tweet_text': {'$regex': user_text.lower()}}
+    #by time range
     else:
-        pass
+        print("YO we in da outskirts")
 
+    # mongo_res = crud.get_mongo(mongo_query)
+    # print(mongo_res)
+    # sql_res = crud.get_mysql(sql_query)
+    #
+    #
+    # print("Type SQLres", type(sql_res))
+    # print("Type mongores", type(mongo_res))
 
-    res = crud.get_mongo(query=mongo_query)
+    sb = Scrollbar(root)
+    sb.pack(side=RIGHT, fill=Y)
+    mylist = Listbox(root, yscrollcommand=sb.set, width=300)
+    # # print(res)
+    
+
+    for row in display_list:
+        mylist.insert(END, str(row))
+
+    mylist.pack(side=LEFT)
+    sb.config(command=mylist.yview)
+
+    #
 
 
 
@@ -163,11 +150,7 @@ for i in range(len(query_option_list)):
     button.pack(anchor=W)
 
 
-# radio(root)
-# entry(root)
-print()
-# field_dropdown(root)
-# go(root)
+
 go_button = Button(root, text="Go", command=go)
 go_button.pack()
 
@@ -175,13 +158,5 @@ entry = Entry(root)
 entry.pack()
 quit(root)
 
-# scrollbar(root)
-# Create text widget and specify size.
-# T = Text(root, height = 5, width = 52)
-# search_choice = IntVar()
-# query_string = StringVar()
-
-# user_query_label = Label(root)
-# user_query_label.pack()
 
 root.mainloop()
