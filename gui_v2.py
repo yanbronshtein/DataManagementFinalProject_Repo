@@ -56,8 +56,8 @@ def welcome(root):
         Please choose a search option, the requested field and your query
         Example Choice 1: Radio button: "Search by Hashtag", Dropdown: "username", Entry: "sundayvibes", Then Click "Go
         Example Choice 2: Radio button: "Search by Word", Dropdown: "user_name",Entry: "Evil can not spread without followers.", Then Click "Go
-        Example Choice 3: Radio button: "Search by User", Dropdown: "tweet_text",Entry: "GabiShae", Then Click "Go
-        Example Choice 4: Radio button: "Search by Time Range", Dropdown: "tweet_text",Entry: "GabiShae", Then Click "Go
+        Example Choice 3: Radio button: "Search by User", Dropdown: "tweet_text",Entry: "SistaAkos", Then Click "Go
+        REDO:::Example Choice 4: Radio button: "Search by Time Range", Dropdown: "tweet_text",Entry: "GabiShae", Then Click "Go
         NOTE: If you choose by time range, specify the start date and end date:
         Ex: "
         """
@@ -113,7 +113,10 @@ def go():
         mongo_query = {'tweet_text': {'$regex': user_text.lower()}}
     elif choice == 3:
         print("choice was to search by user")
-        sql_query = "SELECT * FROM users WHERE screen_name=user_text;"
+        sql_query = """
+        SELECT * FROM user WHERE screen_name='{}';
+        """.format(user_text)
+
         crud.get_mysql(sql_query)
 
     else:
