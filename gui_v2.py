@@ -19,7 +19,7 @@ from crud import CRUD
 # tweets_col = tweets_db_mongo['tweets_col']
 
 query_option_list = ['Search by Hashtag', 'Search by Word', 'Search by User Screen Name', 'Search by Time Range']
-buttonList = []
+button_list = []
 
 result = []
 
@@ -27,11 +27,6 @@ result = []
 # def find_hashtag(tweets_db_mongo, hashtag):
 #     result.append(tweets_db_mongo.tweets_col.find({}))
 
-
-def sel():
-    # print(query_option_list[search_choice.get() - 1])
-    # search_choice_label.config(text=selection, bg='sky blue')
-    pass
 
 def query():
 
@@ -70,25 +65,9 @@ def welcome(root):
     welcome_label.pack()
 
 
-def radio(root):
-    for i in range(len(query_option_list)):
-        # button = Radiobutton(root, text=query_option_list[i], variable=search_choice, value=i+1, command=sel)
-        button = Radiobutton(root, text=query_option_list[i], variable=search_choice, value=i+1, command=sel)
 
-        buttonList.append(button)
-        button.pack(anchor=W)
 
-    search_choice_label = Label(root)
-    search_choice_label.pack()
 
-def entry(root):
-    # entry_label = Label(root, text='Enter your query in the box below and click "Go" to see tweets')
-    # entry_label.pack()
-    global user_entry
-    yoVar = StringVar()
-    user_entry = Entry()
-    user_entry.pack()
-    print(user_entry.get())
 
 
 
@@ -116,9 +95,34 @@ def field_dropdown(root):
     drop.pack()
 
 
-def go(root):
-    go_button = Button(root, text="Go", command=query)
-    go_button.pack()
+def go():
+    print("User search choice", search_choice.get())
+    choice = search_choice.get()
+    user_text = entry.get().strip()
+    print("User text was", user_text)
+    crud = CRUD()
+
+    res = None
+    mongo_query = None
+    if choice == 1:
+        print("choice was to search by hashtag")
+        mongo_query = {'hashtags': {'$elemMatch': {'$eq': user_text}}}
+    elif choice == 2:
+        print("choice was to search by word")
+
+        mongo_query = {'tweet_text': {'$regex': user_text.lower()}}
+    elif choice == 3:
+        print("choice was to search by user")
+        sql_query = "SELECT * FROM users WHERE screen_name=user_text;"
+        crud.get_mysql(sql_query)
+
+    else:
+        pass
+
+
+    res = crud.get_mongo(query=mongo_query)
+
+
 
 
 def scrollbar(root):
@@ -145,20 +149,30 @@ def quit(root):
 root = Tk()
 root.title('Tweet Search Application')
 root.geometry('1000x1000')
-clicked = StringVar()
 welcome(root)
-# search_choice = IntVar()
 search_choice = IntVar()
+user_query = StringVar()
+for i in range(len(query_option_list)):
+    # button = Radiobutton(root, text=query_option_list[i], variable=search_choice, value=i+1, command=sel)
+    button = Radiobutton(root, text=query_option_list[i], variable=search_choice, value=i+1)
 
-radio(root)
-print("Yody", search_choice.get())
+    button_list.append(button)
+    button.pack(anchor=W)
+
+
+# radio(root)
 # entry(root)
 print()
 # field_dropdown(root)
-go(root)
+# go(root)
+go_button = Button(root, text="Go", command=go)
+go_button.pack()
+
+entry = Entry(root)
+entry.pack()
 quit(root)
-scrollbar(root)
-print("Brody choice", )
+
+# scrollbar(root)
 # Create text widget and specify size.
 # T = Text(root, height = 5, width = 52)
 # search_choice = IntVar()
