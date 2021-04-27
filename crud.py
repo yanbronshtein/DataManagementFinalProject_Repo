@@ -36,8 +36,13 @@ class CRUD:
     def get_mongo(self, query):
         # return self.tweets_db_mongo.tweets_col.find(query)
         # print(self.tweets_db_mongo.tweets_col.find_one())
-        temp = self.tweets_db_mongo.tweets_col.find({}).limit(10)
-        return temp
+        # temp = self.tweets_db_mongo.tweets_col.find(query)
+
+        new_temp = self.tweets_db_mongo.tweets_col.find(
+            { 'hashtags': {'$elemMatch':{ '$eq':'sundayvibes'} } }
+        )
+
+        return new_temp
 
         # return pd.DataFrame(self.tweets_db_mongo.tweets_col.find_one()).to_string()
 

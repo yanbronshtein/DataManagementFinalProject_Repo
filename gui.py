@@ -152,7 +152,7 @@ welcome(root)
 
 radio(root)
 entry(root)
-field_dropdown(root)
+# field_dropdown(root)
 go(root)
 quit(root)
 scrollbar(root)
