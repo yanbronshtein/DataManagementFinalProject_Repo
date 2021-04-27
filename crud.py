@@ -54,6 +54,13 @@ class CRUD:
 
 
         # return pd.DataFrame(self.tweets_db_mongo.tweets_col.find_one()).to_string()
+    def make_timestamp(self, date_str):
+        """:arg date_str Date String formatted as MM/DD/YYYY"""
+        # date_string = "11/22/2019"
+        date = datetime.datetime.strptime(date_str, "%m/%d/%Y")
+        time_tuple = date.timetuple()
+        timestamp = time.mktime(time_tuple)
+        return timestamp
 
 
 
