@@ -50,10 +50,14 @@ class GUI:
             Welcome to the Tweet Search Application! 
             Please choose a search option, the requested field and your query
             Example Choice 1: Radio button: "Search by Hashtag", Entry: "sundayvibes", Then Click "Go
+            
             Example Choice 2: Radio button: "Search by Word", ,Entry: "Evil can not spread without followers.", Then Click "Go
+            
             Example Choice 3: Radio button: "Search by User", Entry: "SistaAkos", Then Click "Go
-            Example Choice 4: Radio button: "Search by Time Range", Entry: "01/21/2021 02/22/2021" where the first value is the start date
-            and second value is the end date, Then Click "Go"
+            
+            Example Choice 4: Radio button: "Search by Time Range", 
+            Entry: "2018-06-29 17:08:00 2020-06-29 17:08:00" where the first value is the start date
+            and the second value is the end date in UTC datetime, Then Click "Go"
             """
         welcome_label = Label(self.root, text=welcome_str, font=("Arial", 18), fg='blue')
         welcome_label.pack()
@@ -88,12 +92,15 @@ class GUI:
 
             print("choice was to search by hashtag")
             mongo_query = {'hashtags': {'$elemMatch': {'$eq': user_text}}}
+            doc_count = crud.get_mongo_doc_count(mongo_query)
+            print("doc_count", doc_count)
             mongo_res = crud.get_mongo(mongo_query)
+
             for doc in mongo_res:
                 doc_dict = dict(doc)  # Get the dictionary version of this
                 sql_query = """
-                SELECT * FROM user WHERE tweet_id = '{}' and user_id = '{}';
-                """.format(doc_dict['tweet_id'], doc_dict['user_id'])
+                SELECT * FROM user WHERE sql_tweet_id = '{}' and sql_user_id = '{}';
+                """.format(doc_dict['mongo_tweet_id'], doc_dict['mongo_user_id'])
                 sql_res = crud.get_mysql(sql_query)
                 # the composite key of user_id and tweet_id is unique in SQL so merge_dicts() will work
                 for record in sql_res:
@@ -110,8 +117,8 @@ class GUI:
             for doc in mongo_res:
                 doc_dict = dict(doc)  # Get the dictionary version of this
                 sql_query = """
-                        SELECT * FROM user WHERE tweet_id = '{}' and user_id = '{}';
-                        """.format(doc_dict['tweet_id'], doc_dict['user_id'])
+                        SELECT * FROM user WHERE sql_tweet_id = '{}' and sql_user_id = '{}';
+                        """.format(doc_dict['mongo_tweet_id'], doc_dict['mongo_user_id'])
                 sql_res = crud.get_mysql(sql_query)
                 # the composite key of user_id and tweet_id is unique in SQL so merge_dicts() will work
                 for record in sql_res:
@@ -124,12 +131,11 @@ class GUI:
             SELECT * FROM user WHERE screen_name='{}';
             """.format(user_text)
             sql_res = crud.get_mysql(sql_query)
-            if len(sql_res) == 0:
-                # print(f"The screen_name {} does not exist".format(user_text))
-                print("The screen_name", user_text, "does not exist")
+            # if len(sql_res) == 0:
+            #     print("The screen_name", user_text, "does not exist")
 
             for record in sql_res:
-                mongo_query = {'tweet_id': record['tweet_id'], 'user_id': record['user_id']}
+                mongo_query = {'mongo_tweet_id': record['sql_tweet_id'], 'mongo_user_id': record['sql_user_id']}
                 mongo_res = crud.get_mongo(mongo_query)
                 for doc in mongo_res:
                     print("Timestamp type", type(doc['created_date']))

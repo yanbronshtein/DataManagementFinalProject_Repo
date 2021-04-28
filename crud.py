@@ -3,6 +3,7 @@ import mysql.connector
 import sys
 from dotenv import dotenv_values
 import pandas as pd
+import datetime
 
 
 class CRUD:
@@ -43,6 +44,9 @@ class CRUD:
 
         # sys.exit(0)
 
+    def get_mongo_doc_count(self, query):
+        return self.tweets_db_mongo.tweets_col.count_documents(query)
+
     def get_mongo(self, query):
         return self.tweets_db_mongo.tweets_col.find(query)
         # print(self.tweets_db_mongo.tweets_col.find_one())
@@ -55,12 +59,11 @@ class CRUD:
 
         # return pd.DataFrame(self.tweets_db_mongo.tweets_col.find_one()).to_string()
     def make_timestamp(self, date_str):
-        """:arg date_str Date String formatted as MM/DD/YYYY"""
-        # date_string = "11/22/2019"
-        date = datetime.datetime.strptime(date_str, "%m/%d/%Y")
-        time_tuple = date.timetuple()
-        timestamp = time.mktime(time_tuple)
+        """:arg date_str Date Time String formatted as '2018-06-29 17:08:00'"""
+        date_time_obj = dt.datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S')
         return timestamp
+
+
 
 
 
