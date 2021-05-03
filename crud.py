@@ -58,10 +58,14 @@ class CRUD:
 
 
         # return pd.DataFrame(self.tweets_db_mongo.tweets_col.find_one()).to_string()
-    def make_timestamp(self, date_str):
+    def make_timestamp(self, date_time_str):
         """:arg date_str Date Time String formatted as '2018-06-29 17:08:00'"""
-        date_time_obj = dt.datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S')
-        return timestamp
+        date_time_obj = datetime.datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S')
+
+        return date_time_obj
+
+
+
 
 
 

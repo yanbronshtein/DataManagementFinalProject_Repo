@@ -131,3 +131,6 @@ dmypy.json
 #ignore cassandra
 apache-cassandra-3.11.10
 
+
+*.json
+
