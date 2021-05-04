@@ -7,7 +7,7 @@ from tkinter import *
 from tkinter import ttk
 from crud_v2 import CRUD
 import os
-
+import datetime
 ##VIP global variables
 
 
@@ -102,26 +102,24 @@ class GUI:
         print("User search choice", self.search_choice.get())
         choice = self.search_choice.get()
         user_text = self.entry.get().strip()
-        print("User text was", user_text)
+        # print("User text was", user_text)
         crud = CRUD()
 
-        mongo_query = sql_query = sql_res = mongo_res = None
-        # by hashtag
-        # Find user and tweet_id. Find all matches in SQL
+
         global user_info_list
         global tweet_info_list
         user_info_list = []  # Store SQL user information
         tweet_info_list = [] # Store MongoDB tweet information
-        # summary = ''
-        # elapsed_time_ms = ''
+
         res = None
         if choice == 1:
 
             print("choice was to search by hashtag")
-            res = crud.hashtag(user_text)
+            res = crud.search_by_hashtag(user_text)
 
         elif choice == 2:
-            pass
+            res = crud.search_by_word(user_text)
+
         #     print("choice was to search by word")
         #
         #     # mongo_query = {'tweet_text': {'$regex': user_text.lower()}}
@@ -161,8 +159,14 @@ class GUI:
 
         # by time range
         elif choice == 4:
-            pass
-            # start_date, end_date = user_text.split(',')  # Get start and end dates
+            # print("choice was to search by time range")
+            lower_bound, upper_bound = user_text.split(',')  # Get start and end dates
+            lower_bound = datetime.datetime.strptime(lower_bound.strip(), '%Y-%m-%d %H:%M:%S')
+
+            upper_bound = datetime.datetime.strptime(upper_bound.strip(), '%Y-%m-%d %H:%M:%S')
+
+            res = crud.search_by_time_range(lower_bound, upper_bound)
+
             # start_timestamp = crud.make_timestamp(start_date)
             # end_timestamp = crud.make_timestamp(start_date)
             # mongo_query = {"created_date": {"$gte": start_timestamp, "$lt": end_timestamp}}
@@ -177,9 +181,12 @@ class GUI:
             #     # the composite key of user_id and tweet_id is unique in SQL so merge_dicts() will work
             #     for record in sql_res:
             #         user_info_list.append(str(record) + '\n')
-        print("YOYOYO")
-        print(res)
-        self.summary_label = Label(self.root, bg='yellow', width=300, text=res[0] + res[1])
+
+        # print(res)
+        bg = 'red' if 'ERROR' in res[0] else 'yellow'
+        # # print(res[0])
+        # print(bg)
+        self.summary_label = Label(self.root, bg=bg, width=300, text=res[0] + res[1])
         self.summary_label.pack()
 
         # sql_res = crud.get_mysql(sql_query)

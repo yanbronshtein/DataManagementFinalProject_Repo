@@ -3,7 +3,7 @@ import mysql.connector
 import sys
 from dotenv import dotenv_values
 import pandas as pd
-import datetime
+# import datetime
 import fontstyle
 import time
 import redis
@@ -40,7 +40,7 @@ class CRUD:
 
         self.redis_client = redis.Redis(host='localhost', port='6379', decode_responses=True)
 
-    def hashtag(self, user_text):
+    def search_by_hashtag(self, user_text):
 
         mongo_query = {"$or": [{'original_hash': {'$elemMatch': {'$eq': user_text}}},
                                {'retweet_hash': {'$elemMatch': {'$eq': user_text}}}]}
@@ -95,100 +95,166 @@ class CRUD:
 
         return (summary, elapsed_time_ms)
 
-    def time_range(self, lower_bound, upper_bound):
-        try:
-            lower_bound = str(lower_bound)
-            upper_bound = str(upper_bound)
-            # upper_bound = "2021-04-26 14:12:19"
-            my_query = {"time": {"$gte": lower_bound, "$lt": upper_bound}}
-            my_doc = self.tweets_db_mongo.tweets_col.find(my_query).sort("followers_count", -1)
+    def search_by_word(self, user_text):
 
-            tweets_cnt = self.tweets_db_mongo.tweets_col.count_documents(my_query)
-            dist_users = len(tweets_col.distinct('user_id', my_query))
+        mongo_query = {"$or": [{"tweet_text": {"$regex": user_text}}, {"retweet_text": {"$regex": user_text}}]}
 
-            # num_tweeters = 0
-            num_retweeters = 0
+        redis_key = """{}:{}""".format(2, user_text)
+        summary = ""
+        start_time = time.time()
+        elapsed_time_ms = ''
+        if self.redis_client.exists(redis_key) > 0 and self.redis_client.ttl(redis_key) > 0:
 
-            # ave_query =([{"$group": {"_id":'null', "average": {"$avg":"$followers"} } }])
+            summary += "Found in redis cache. Generating summary write away"
+            summary += self.redis_client.get(redis_key)
+            end_time = time.time()
+            elapsed_time = end_time - start_time
 
-            p = 1
-            avg = 0
-            for i in my_doc:
-                avg = avg + i['followers']
-                p += 1
+            elapsed_time_ms = str(round(elapsed_time * 1000)) + 'ms'
+        else:
+            summary += "Not found in redis cache. Generating summary from DB and updating cache"
+            my_doc = self.tweets_db_mongo.tweets_col.find(mongo_query).sort("followers_count", -1)  #
+            # count_docs = self.tweets_db_mongo.tweets_col.count_documents(mongo_query)
+            num_unique_users = len(self.tweets_db_mongo.tweets_col.distinct('user_id', mongo_query))
 
-            avg_follow = round(avg / p, 0)
-            my_doc = tweets_col.find(my_query).sort("followers", -1)
+            num_retweets = 0
+            tweet_sample = ""
+            count_docs = 0
+            for doc in my_doc:
+                count_docs += 1
+                if doc['is_retweet']:
+                    num_retweets += 1
+                else:
+                    tweet_sample = doc['tweet_text']
+            try:
+                percent_retweets = str(round((float(num_retweets / count_docs) * 100), 2)) + '%'
+            except ZeroDivisionError:
+                return ("""ERROR: the query {} + "threw an error. 
+                            "Please clear the output and try again""".format(user_text), "")
 
-            text = fontstyle.apply('SUMMARY STATISTICS:', 'bold/white/black_BG')
+            end_time = time.time()
+            elapsed_time = end_time - start_time
 
+            elapsed_time_ms = str(round(elapsed_time * 1000)) + 'ms'
             summary = """
-            Number of tweets: {}
-    
-            Number of users who posted within the time range : {}
-    
-            Average no. of followers for the users who tweeted: {}
-    
-            """.format(tweets_cnt, dist_users, avg_follow)
+            Total tweets: {}
 
-            twt_head = fontstyle.apply('2 Tweets from the most followed people ', 'bold/white/black_BG')
+            Number of unique users with hashtag: {}
 
-            tweet = """"
-    
-            1.{}
-    
-            2.{}""".format(my_doc[0]['text'], my_doc[1]['text'])
+            Percent Retweets: {}
 
-            print(text, summary, twt_head, tweet)
-        except:
-            error = fontstyle.apply('Use alternate search criteria', 'bold/white/black_BG')
-            print(error)
+            Tweet Of the Day: {}           
+            """.format(count_docs, num_unique_users, percent_retweets, tweet_sample)
+            self.redis_client.setex(redis_key, time=timedelta(minutes=15), value=summary)
 
-    def word(self, user_text):
-        try:
-            myquery = {"$or": [{"text": {"$regex": user_text}}, {"rtwt_text": {"$regex": user_text}}]}
-            mydoc = tweets_col.find(myquery).sort("followers", -1)
+        return (summary, elapsed_time_ms)
 
-            tweets_cnt = tweets_col.count_documents(myquery)
-            dist_users = len(tweets_col.distinct('user_id', myquery))
+    def search_by_time_range(self, lower_bound, upper_bound):
 
-            ########################avg query########################################
-            num_tweets
-            num_retweets
 
-            # ave_query =([{"$group": {"_id":'null', "average": {"$avg":"$followers"} } }])
+        # # upper_bound = "2021-04-26 14:12:19"
+        mongo_query = {"created_date": {"$gte": lower_bound, "$lt": upper_bound}}
 
-            p = 1
-            avg = 0
-            for i in mydoc:
-                avg = avg + i['followers']
-                p += 1
+        redis_key = """{}:{}""".format(4, str(lower_bound)+','+str(upper_bound))
+        summary = ""
+        start_time = time.time()
+        elapsed_time_ms = ''
+        if self.redis_client.exists(redis_key) > 0 and self.redis_client.ttl(redis_key) > 0:
+            summary += "Found in redis cache. Generating summary write away"
+            summary += self.redis_client.get(redis_key)
+            end_time = time.time()
+            elapsed_time = end_time - start_time
 
-            avg_follow = round(avg / p, 0)
-            mydoc = tweets_col.find(myquery).sort("followers", -1)
+            elapsed_time_ms = str(round(elapsed_time * 1000)) + 'ms'
+        else:
 
-            text = fontstyle.apply('SUMMARY STATISTICS:', 'bold/white/black_BG')
+            summary += "Not found in redis cache. Generating summary from DB and updating cache"
+            # my_doc = self.tweets_db_mongo.tweets_col.find_one(mongo_query).sort("followers_count", -1)
+            my_doc = self.tweets_db_mongo.tweets_col.find(mongo_query)
 
+            for doc in my_doc:
+                print(dict(my_doc))
+            # # count_docs = self.tweets_db_mongo.tweets_col.count_documents(mongo_query)
+            num_unique_users = len(self.tweets_db_mongo.tweets_col.distinct('user_id', mongo_query))
+
+            num_retweets = 0
+            tweet_sample = ""
+            count_docs = 0
+            for doc in my_doc:
+                count_docs += 1
+                if doc['is_retweet']:
+                    num_retweets += 1
+                else:
+                    tweet_sample = doc['tweet_text']
+            try:
+                percent_retweets = str(round((float(num_retweets / count_docs) * 100), 2)) + '%'
+            except ZeroDivisionError:
+                return ("""ERROR: the time query with lower bound {} and upper bound {}"threw an error.
+                            Please clear the output and try again""".format(lower_bound, upper_bound), "")
+
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+
+            elapsed_time_ms = str(round(elapsed_time * 1000)) + 'ms'
             summary = """
-            Number of tweets: {}
-    
-            Number of users who tweeted the selected word : {}
-    
-            Average no. of followers for the users who tweeted: {}
-    
-            """.format(tweets_cnt, dist_users, avg_follow)
+            Total tweets: {}
 
-            twt_head = fontstyle.apply('2 Tweets from the most followed people ', 'bold/white/black_BG')
+            Number of unique users with hashtag: {}
 
-            tweet = """"
-    
-            1.{}
-    
-            2.{}""".format(mydoc[0]['text'], mydoc[1]['text'])
+            Percent Retweets: {}
 
-            print(text, summary, twt_head, tweet)
+            Tweet Of the Day: {}           
+            """.format(count_docs, num_unique_users, percent_retweets, tweet_sample)
+            self.redis_client.setex(redis_key, time=timedelta(minutes=15), value=summary)
 
-            ####################################################################
-        except:
-            error = fontstyle.apply('Use alternate search criteria', 'bold/white/black_BG')
-            print(error)
+        return (summary, elapsed_time_ms)
+
+
+
+    # def word(self, user_text):
+    #     try:
+    #         myquery = {"$or": [{"text": {"$regex": user_text}}, {"rtwt_text": {"$regex": user_text}}]}
+    #         mydoc = tweets_col.find(myquery).sort("followers", -1)
+    #
+    #         tweets_cnt = tweets_col.count_documents(myquery)
+    #         dist_users = len(tweets_col.distinct('user_id', myquery))
+    #
+    #         ########################avg query########################################
+    #         num_tweets
+    #
+    #         # ave_query =([{"$group": {"_id":'null', "average": {"$avg":"$followers"} } }])
+    #
+    #         p = 1
+    #         avg = 0
+    #         for i in mydoc:
+    #             avg = avg + i['followers']
+    #             p += 1
+    #
+    #         avg_follow = round(avg / p, 0)
+    #         mydoc = tweets_col.find(myquery).sort("followers", -1)
+    #
+    #         text = fontstyle.apply('SUMMARY STATISTICS:', 'bold/white/black_BG')
+    #
+    #         summary = """
+    #         Number of tweets: {}
+    #
+    #         Number of users who tweeted the selected word : {}
+    #
+    #         Average no. of followers for the users who tweeted: {}
+    #
+    #         """.format(tweets_cnt, dist_users, avg_follow)
+    #
+    #         twt_head = fontstyle.apply('2 Tweets from the most followed people ', 'bold/white/black_BG')
+    #
+    #         tweet = """"
+    #
+    #         1.{}
+    #
+    #         2.{}""".format(mydoc[0]['text'], mydoc[1]['text'])
+    #
+    #         print(text, summary, twt_head, tweet)
+    #
+    #         ####################################################################
+    #     except:
+    #         error = fontstyle.apply('Use alternate search criteria', 'bold/white/black_BG')
+    #         print(error)
