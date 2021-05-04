@@ -139,7 +139,8 @@ class GUI:
 
         # by user
         elif choice == 3:
-            pass
+            res = crud.search_by_user(user_text)
+
             # print("choice was to search by user")
             # sql_query = """
             # SELECT * FROM user WHERE screen_name='{}';

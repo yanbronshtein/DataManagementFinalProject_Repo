@@ -75,7 +75,7 @@ class CRUD:
             try:
                 percent_retweets = str(round((float(num_retweets / count_docs) * 100), 2)) + '%'
             except ZeroDivisionError:
-                return ("""ERROR: the query {} + "threw an error. 
+                return ("""ERROR: the query by hashtag {} threw an error. 
                             "Please clear the output and try again""".format(user_text), "")
 
             end_time = time.time()
@@ -129,7 +129,7 @@ class CRUD:
             try:
                 percent_retweets = str(round((float(num_retweets / count_docs) * 100), 2)) + '%'
             except ZeroDivisionError:
-                return ("""ERROR: the query {} + "threw an error. 
+                return ("""ERROR: the query by word {} threw an error. 
                             "Please clear the output and try again""".format(user_text), "")
 
             end_time = time.time()
@@ -144,6 +144,64 @@ class CRUD:
             Percent Retweets: {}
 
             Tweet Of the Day: {}           
+            """.format(count_docs, num_unique_users, percent_retweets, tweet_sample)
+            self.redis_client.setex(redis_key, time=timedelta(minutes=15), value=summary)
+
+        return (summary, elapsed_time_ms)
+
+    def search_by_user(self, user_text):
+        #Sql query first
+
+        sql_query = """SELECT sql_user_id FROM user WHERE screen_name = '{}';""".format(user_text)
+        self.mysql_cursor.execute(sql_query)
+        sql_user_id = self.mysql_cursor.fetchone()
+
+        mongo_query = {'user_id': sql_user_id['sql_user_id']}
+        redis_key = """{}:{}""".format(3, user_text)
+        summary = ""
+        start_time = time.time()
+        elapsed_time_ms = ''
+        if self.redis_client.exists(redis_key) > 0 and self.redis_client.ttl(redis_key) > 0:
+
+            summary += "Found in redis cache. Generating summary write away"
+            summary += self.redis_client.get(redis_key)
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+
+            elapsed_time_ms = str(round(elapsed_time * 1000)) + 'ms'
+        else:
+            summary += "Not found in redis cache. Generating summary from DB and updating cache"
+            my_doc = self.tweets_db_mongo.tweets_col.find(mongo_query).sort("followers_count", -1)  #
+            # count_docs = self.tweets_db_mongo.tweets_col.count_documents(mongo_query)
+            num_unique_users = len(self.tweets_db_mongo.tweets_col.distinct('user_id', mongo_query))
+
+            num_retweets = 0
+            tweet_sample = ""
+            count_docs = 0
+            for doc in my_doc:
+                count_docs += 1
+                if doc['is_retweet']:
+                    num_retweets += 1
+                else:
+                    tweet_sample = doc['tweet_text']
+            try:
+                percent_retweets = str(round((float(num_retweets / count_docs) * 100), 2)) + '%'
+            except ZeroDivisionError:
+                return ("""ERROR: the query by user {} threw an error.
+                            "Please clear the output and try again""".format(user_text), "")
+
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+
+            elapsed_time_ms = str(round(elapsed_time * 1000)) + 'ms'
+            summary = """
+            Total tweets: {}
+
+            Number of unique users with hashtag: {}
+
+            Percent Retweets: {}
+
+            Tweet Of the Day: {}
             """.format(count_docs, num_unique_users, percent_retweets, tweet_sample)
             self.redis_client.setex(redis_key, time=timedelta(minutes=15), value=summary)
 
