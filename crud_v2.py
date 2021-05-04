@@ -212,7 +212,7 @@ class CRUD:
 
         # # upper_bound = "2021-04-26 14:12:19"
         mongo_query = {"created_date": {"$gte": lower_bound, "$lt": upper_bound}}
-
+        print(mongo_query)
         redis_key = """{}:{}""".format(4, str(lower_bound)+','+str(upper_bound))
         summary = ""
         start_time = time.time()
@@ -247,7 +247,7 @@ class CRUD:
             try:
                 percent_retweets = str(round((float(num_retweets / count_docs) * 100), 2)) + '%'
             except ZeroDivisionError:
-                return ("""ERROR: the time query with lower bound {} and upper bound {}"threw an error.
+                return ("""ERROR: the time query with lower bound {} and upper bound {} threw an error.
                             Please clear the output and try again""".format(lower_bound, upper_bound), "")
 
             end_time = time.time()
