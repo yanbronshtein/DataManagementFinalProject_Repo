@@ -72,8 +72,11 @@ class CRUD:
                     num_retweets += 1
                 else:
                     tweet_sample = doc['tweet_text']
-
-            percent_retweets = str(round((float(num_retweets / count_docs) * 100), 2)) + '%'
+            try:
+                percent_retweets = str(round((float(num_retweets / count_docs) * 100), 2)) + '%'
+            except ZeroDivisionError:
+                return ("""ERROR: the query {} + "threw an error. 
+                            "Please clear the output and try again""".format(user_text), "")
 
             end_time = time.time()
             elapsed_time = end_time - start_time
@@ -96,9 +99,9 @@ class CRUD:
         try:
             lower_bound = str(lower_bound)
             upper_bound = str(upper_bound)
-            upper_bound = "2021-04-26 14:12:19"
+            # upper_bound = "2021-04-26 14:12:19"
             my_query = {"time": {"$gte": lower_bound, "$lt": upper_bound}}
-            my_doc = self.tweets_db_mongo.tweets_col.find(my_query).sort("followers", -1)
+            my_doc = self.tweets_db_mongo.tweets_col.find(my_query).sort("followers_count", -1)
 
             tweets_cnt = self.tweets_db_mongo.tweets_col.count_documents(my_query)
             dist_users = len(tweets_col.distinct('user_id', my_query))
