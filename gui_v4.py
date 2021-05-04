@@ -111,10 +111,9 @@ class GUI:
         user_info_list = []  # Store SQL user information
         tweet_info_list = [] # Store MongoDB tweet information
 
-        res = None
+        res = ""
         if choice == 1:
 
-            print("choice was to search by hashtag")
             res = crud.search_by_hashtag(user_text)
 
         elif choice == 2:
@@ -161,12 +160,16 @@ class GUI:
         # by time range
         elif choice == 4:
             # print("choice was to search by time range")
-            lower_bound, upper_bound = user_text.split(',')  # Get start and end dates
-            lower_bound = datetime.datetime.strptime(lower_bound.strip(), '%Y-%m-%d %H:%M:%S')
+            try:
+                lower_bound, upper_bound = user_text.split(',')  # Get start and end dates
+                lower_bound = datetime.datetime.strptime(lower_bound.strip(), '%Y-%m-%d %H:%M:%S')
 
-            upper_bound = datetime.datetime.strptime(upper_bound.strip(), '%Y-%m-%d %H:%M:%S')
+                upper_bound = datetime.datetime.strptime(upper_bound.strip(), '%Y-%m-%d %H:%M:%S')
+                res = crud.search_by_time_range(lower_bound, upper_bound)
 
-            res = crud.search_by_time_range(lower_bound, upper_bound)
+            except ValueError:
+                res = """ERROR: the query by user <{}> threw an error because two comma separated values were not provided
+                            Please clear the output and try again""".format(user_text)
 
             # start_timestamp = crud.make_timestamp(start_date)
             # end_timestamp = crud.make_timestamp(start_date)
@@ -183,11 +186,11 @@ class GUI:
             #     for record in sql_res:
             #         user_info_list.append(str(record) + '\n')
 
-        # print(res)
-        bg = 'red' if 'ERROR' in res[0] else 'yellow'
+        print("res yo", res)
+        bg = 'red' if 'ERROR' in res else 'yellow'
         # # print(res[0])
         # print(bg)
-        self.summary_label = Label(self.root, bg=bg, width=300, text=res[0] + res[1])
+        self.summary_label = Label(self.root, bg=bg, width=300, text=res)
         self.summary_label.pack()
 
         # sql_res = crud.get_mysql(sql_query)
