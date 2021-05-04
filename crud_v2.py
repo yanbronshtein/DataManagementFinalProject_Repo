@@ -8,6 +8,7 @@ import fontstyle
 import time
 import redis
 from datetime import timedelta
+import datetime
 
 
 class CRUD:
@@ -39,6 +40,8 @@ class CRUD:
         ##REDIS
 
         self.redis_client = redis.Redis(host='localhost', port='6379', decode_responses=True)
+        self.redis_client.flushdb()
+
 
     def search_by_hashtag(self, user_text):
 
@@ -150,7 +153,7 @@ class CRUD:
         return (summary, elapsed_time_ms)
 
     def search_by_user(self, user_text):
-        #Sql query first
+        # Sql query first
 
         sql_query = """SELECT sql_user_id FROM user WHERE screen_name = '{}';""".format(user_text)
         self.mysql_cursor.execute(sql_query)
@@ -209,11 +212,10 @@ class CRUD:
 
     def search_by_time_range(self, lower_bound, upper_bound):
 
-
-        # # upper_bound = "2021-04-26 14:12:19"
+        # upper_bound = datetime.datetime.now()
         mongo_query = {"created_date": {"$gte": lower_bound, "$lt": upper_bound}}
         print(mongo_query)
-        redis_key = """{}:{}""".format(4, str(lower_bound)+','+str(upper_bound))
+        redis_key = """{}:{}""".format(4, str(lower_bound) + ',' + str(upper_bound))
         summary = ""
         start_time = time.time()
         elapsed_time_ms = ''
@@ -228,10 +230,12 @@ class CRUD:
 
             summary += "Not found in redis cache. Generating summary from DB and updating cache"
             # my_doc = self.tweets_db_mongo.tweets_col.find_one(mongo_query).sort("followers_count", -1)
+            # my_doc = self.tweets_db_mongo.tweets_col.find(mongo_query)
+            # my_doc = self.tweets_db_mongo.tweets_col.find_one(mongo_query) #works wtf
             my_doc = self.tweets_db_mongo.tweets_col.find(mongo_query)
 
-            for doc in my_doc:
-                print(dict(my_doc))
+            # for doc in my_doc:
+            #     print(dict(my_doc))
             # # count_docs = self.tweets_db_mongo.tweets_col.count_documents(mongo_query)
             num_unique_users = len(self.tweets_db_mongo.tweets_col.distinct('user_id', mongo_query))
 
@@ -242,8 +246,12 @@ class CRUD:
                 count_docs += 1
                 if doc['is_retweet']:
                     num_retweets += 1
+                    tweet_sample = doc['retweet_text']
+
                 else:
-                    tweet_sample = doc['tweet_text']
+                    tweet_sample = doc['retweet_text']
+            print("sample yo", tweet_sample)
+
             try:
                 percent_retweets = str(round((float(num_retweets / count_docs) * 100), 2)) + '%'
             except ZeroDivisionError:
@@ -266,53 +274,3 @@ class CRUD:
             self.redis_client.setex(redis_key, time=timedelta(minutes=15), value=summary)
 
         return (summary, elapsed_time_ms)
-
-
-
-    # def word(self, user_text):
-    #     try:
-    #         myquery = {"$or": [{"text": {"$regex": user_text}}, {"rtwt_text": {"$regex": user_text}}]}
-    #         mydoc = tweets_col.find(myquery).sort("followers", -1)
-    #
-    #         tweets_cnt = tweets_col.count_documents(myquery)
-    #         dist_users = len(tweets_col.distinct('user_id', myquery))
-    #
-    #         ########################avg query########################################
-    #         num_tweets
-    #
-    #         # ave_query =([{"$group": {"_id":'null', "average": {"$avg":"$followers"} } }])
-    #
-    #         p = 1
-    #         avg = 0
-    #         for i in mydoc:
-    #             avg = avg + i['followers']
-    #             p += 1
-    #
-    #         avg_follow = round(avg / p, 0)
-    #         mydoc = tweets_col.find(myquery).sort("followers", -1)
-    #
-    #         text = fontstyle.apply('SUMMARY STATISTICS:', 'bold/white/black_BG')
-    #
-    #         summary = """
-    #         Number of tweets: {}
-    #
-    #         Number of users who tweeted the selected word : {}
-    #
-    #         Average no. of followers for the users who tweeted: {}
-    #
-    #         """.format(tweets_cnt, dist_users, avg_follow)
-    #
-    #         twt_head = fontstyle.apply('2 Tweets from the most followed people ', 'bold/white/black_BG')
-    #
-    #         tweet = """"
-    #
-    #         1.{}
-    #
-    #         2.{}""".format(mydoc[0]['text'], mydoc[1]['text'])
-    #
-    #         print(text, summary, twt_head, tweet)
-    #
-    #         ####################################################################
-    #     except:
-    #         error = fontstyle.apply('Use alternate search criteria', 'bold/white/black_BG')
-    #         print(error)
