@@ -118,25 +118,6 @@ class GUI:
 
         elif choice == 2:
             res = crud.search_by_word(user_text)
-
-        #     print("choice was to search by word")
-        #
-        #     # mongo_query = {'tweet_text': {'$regex': user_text.lower()}}
-        #     mongo_query = {'tweet_text': {'$elemMatch': {'$eq': user_text}}}
-        #
-        #     mongo_res = crud.get_mongo(mongo_query)
-        #     for doc in mongo_res:
-        #         doc_dict = dict(doc)  # Get the dictionary version of this
-        #         tweet_info_list.append(str(doc_dict))
-        #         sql_query = """
-        #                 SELECT * FROM user WHERE sql_tweet_id = '{}' and sql_user_id = '{}';
-        #                 """.format(doc_dict['mongo_tweet_id'], doc_dict['mongo_user_id'])
-        #         sql_res = crud.get_mysql(sql_query)
-        #         # the composite key of user_id and tweet_id is unique in SQL so merge_dicts() will work
-        #         for record in sql_res:
-        #             user_info_list.append(str(record) + '\n')
-
-        # by user
         elif choice == 3:
             res = crud.search_by_user(user_text)
 
